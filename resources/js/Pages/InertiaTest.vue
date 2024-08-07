@@ -6,7 +6,7 @@ import { Link } from '@inertiajs/inertia-vue3';
 <template>
 Inertiaテスト<br>
 <a href="/">aタグから来ました</a><br>
-<Link href="/">Linkから来ました</Link>
-<Link :href="route('inertia.index')">名前付きrouteの確認</Link>
-
+<Link href="/">Linkから来ました</Link><br>
+<Link :href="route('inertia.index')">名前付きrouteの確認</Link><br>
+<Link :href="route('inertia.show', { id:1 })">ルートパラメータの確認</Link>
 </template>
