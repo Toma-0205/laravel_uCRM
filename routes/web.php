@@ -23,7 +23,7 @@ Route::get('/intertia-test', function () {
 );
 
 Route::get('/intertia/index', [InertiaTestController:: class, 'index'])->name('inertia.index'); 
-
+Route::post('/intertia', [InertiaTestController:: class, 'store'])->name('inertia.store'); 
 Route::get('/intertia/show/{id}', [InertiaTestController:: class, 'show'])->name('inertia.show'); 
 
 
