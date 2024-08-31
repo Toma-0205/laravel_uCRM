@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('memo')->nullable();
-            $table->integer('proce');
+            $table->integer('price');
             $table->boolean('is_selling')->default(true);
             $table->timestamps();
         });
