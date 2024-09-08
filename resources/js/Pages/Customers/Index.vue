@@ -2,8 +2,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import FlashMessage from '@/Components/FlashMessage.vue';
+import Pagenation from '@/Components/Pagenation.vue';
+
 defineProps({
-    customers: Array
+    customers: Object
 })
 </script>
 
@@ -25,7 +27,7 @@ defineProps({
                             
                             <div class="container px-5 py-8 mx-auto">
                                 <FlashMessage />
-                                <div class="flex pl-4 my-4 lg:w-2/3 w-full mx-auto">
+                                <div class="flex pl-4 mb-6 lg:w-2/3 w-full mx-auto">
                                     <Link as="button" :href="route('customers.create')" class="flex ml-auto text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded">顧客登録</Link>
                                 </div>
                                 <div class="lg:w-2/3 w-full mx-auto overflow-auto">
@@ -39,7 +41,7 @@ defineProps({
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        <tr v-for="customer in customers" :key="customer.id">
+                                        <tr v-for="customer in customers.data" :key="customer.id">
                                             <td class="px-4 py-3 border-b-2 border-gray-200">{{customer.id}}</td>
                                             <td class="px-4 py-3 border-b-2 border-gray-200">{{customer.name}}</td>
                                             <td class="px-4 py-3 border-b-2 border-gray-200">{{customer.kana}}</td>
@@ -50,6 +52,9 @@ defineProps({
                                     </table>
                                 </div>
                                 
+                            </div>
+                            <div class="flex justify-center mt-6 mb-6">
+                                <Pagenation :links="customers.links"></Pagenation>
                             </div>
                         </section>
                     </div>
