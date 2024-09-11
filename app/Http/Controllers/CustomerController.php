@@ -7,6 +7,9 @@ use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+// エラーログ確認
+// use Illuminate\Support\Facades\Log;
+
 
 
 class CustomerController extends Controller
@@ -35,7 +38,7 @@ class CustomerController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Customers/Create');
     }
 
     /**
@@ -44,10 +47,58 @@ class CustomerController extends Controller
      * @param  \App\Http\Requests\StoreCustomerRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(StoreCustomerRequest $request)
+
+     public function store(StoreCustomerRequest $request)
     {
-        //
+        Customer::create([
+            'name' => $request->name,
+            'kana' => $request->kana,
+            'tel' => $request->tel,
+            'email' => $request->email,
+            'postcode' => $request->postcode,
+            'address' => $request->address,
+            'birthday' => $request->birthday,
+            'gender' => $request->gender,
+            'memo' => $request->memo,
+        ]);
+
+        return to_route('customers.index')
+        ->with([
+            'message' => '登録しました。',
+            'status' => 'success'
+        ]);
     }
+
+    // エラーログ確認用
+    // public function store(StoreCustomerRequest $request)
+    // {
+    //     Log::info('リクエストデータ:', $request->all());
+
+    //     try {
+    //         $customer = Customer::create([
+    //             'name' => $request->name,
+    //             'kana' => $request->kana,
+    //             'tel' => $request->tel,
+    //             'email' => $request->email,
+    //             'postcode' => $request->postcode,
+    //             'address' => $request->address,
+    //             'birthday' => $request->birthday,
+    //             'gender' => $request->gender,
+    //             'memo' => $request->memo,
+    //         ]);
+
+    //         Log::info('顧客データが正常に保存されました。', ['customer' => $customer]);
+
+    //     } catch (\Exception $e) {
+    //         Log::error('顧客データ保存中にエラーが発生しました。', ['error' => $e->getMessage()]);
+    //     }
+
+    //     return to_route('customers.index')
+    //         ->with([
+    //             'message' => '登録しました。',
+    //             'status' => 'success'
+    //         ]);
+    // }
 
     /**
      * Display the specified resource.
