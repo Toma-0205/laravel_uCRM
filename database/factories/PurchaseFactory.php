@@ -17,9 +17,15 @@ class PurchaseFactory extends Factory
      */
     public function definition()
     {
+        // ランダムな10年間の期間を指定する処理
+        $startYear = rand(1980, 2020); // ランダムな開始年を選択
+        $endYear = $startYear + 9; // 開始年から10年間の範囲を指定
+        $created_at = $this->faker->dateTimeBetween("{$startYear}-01-01", "{$endYear}-12-31");
+
         return [
             'customer_id' => rand(1, Customer::count()),
             'status' => $this->faker->boolean,
+            'created_at' => $created_at
         ];
     }
 }
