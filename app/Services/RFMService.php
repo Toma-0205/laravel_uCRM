@@ -2,152 +2,117 @@
 
 namespace App\Services;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 class RFMService
 {
-    public static function rfm($subQuery, $rfmPrms)
-    {
-        // RFM分析
-        // 1.IDごと
+  public static function rfm($subQuery, $rfmPrms)
+  {
+// RFM分析
+        // 1. 購買ID毎にまとめる 
         $subQuery = $subQuery->groupBy('id')
-        ->selectRaw('id, customer_id, customer_name, SUM(subtotal) as totalPerPurchase, created_at');
+        ->selectRaw('id, customer_id, customer_name, 
+        SUM(subtotal) as totalPerPurchase, created_at');
 
-        // 2.顧客ごとに最終購入日、購入回数、購入合計金額を取得
+        // 2. 会員毎にまとめて最終購入日、回数、合計金額を取得
         $subQuery = DB::table($subQuery)
         ->groupBy('customer_id')
         ->selectRaw('customer_id, customer_name, 
         max(created_at) as recentDate, 
-        datediff(now(), max(created_at)) as recency, 
+        datediff(now(), max(created_at)) as recency,
         count(customer_id) as frequency, 
         sum(totalPerPurchase) as monetary');
 
-        // 会員ごとのRFMランクを計算
+        // dd($subQuery);
+
+        // 4. 会員毎のRFMランクを計算
         // $rfmPrms = [
-        //     14, 28, 60, 90, 7, 5, 3, 2, 300000, 200000, 100000, 30000
-        // ];
+        //     14, 28, 60, 90, 7, 5, 3, 2, 300000, 200000, 100000, 30000 ];
 
         $subQuery = DB::table($subQuery)
-        ->selectRaw('
-            customer_id, customer_name,
-            recentDate, recency, frequency, monetary,
-            case
+        ->selectRaw('customer_id, customer_name,
+        recentDate, recency, frequency, monetary,
+        case
             when recency < ? then 5
             when recency < ? then 4
             when recency < ? then 3
             when recency < ? then 2
             else 1 end as r,
-            case
+        case
             when ? <= frequency then 5
             when ? <= frequency then 4
             when ? <= frequency then 3
             when ? <= frequency then 2
             else 1 end as f,
-            case
+        case
             when ? <= monetary then 5
             when ? <= monetary then 4
             when ? <= monetary then 3
             when ? <= monetary then 2
-            else 1 end as m',
-            $rfmPrms
-        );
+            else 1 end as m', $rfmPrms);
 
-        // // ランクごとの数を計算
-        // $total = DB::table($subQuery)->count();
+        // dd($subQuery);
+        Log::debug($subQuery->get());
 
-        // $rCount = DB::table($subQuery)
-        // ->groupBY('r')
-        // // ->selectRaw('r, count(r)')
-        // ->selectRaw('r, count(r) as r_count')
-        // ->orderBy('r', 'desc')
-        // // ->pluck('count(r)');
-        // // ->pluck('r_count');
-        // ->get();
-
-        // $fCount = DB::table($subQuery)
-        // ->groupBY('f')
-        // // ->selectRaw('f, count(f)')
-        // ->selectRaw('f, count(f) as f_count')
-        // ->orderBy('f', 'desc')
-        // // ->pluck('count(f)');
-        // // ->pluck('f_count');
-        // ->get();
-
-        // $mCount = DB::table($subQuery)
-        // ->groupBy('m')
-        // // ->selectRaw('m, count(m)')
-        // ->selectRaw('m, count(m) as m_count')
-        // ->orderBy('m', 'desc')
-        // // ->pluck('count(m)');
-        // // ->pluck('m_count');
-        // ->get();
-
-        // $rCount = $rData->pluck('r_count');
-        // $fCount = $fData->pluck('f_count');
-        // $mCount = $mData->pluck('m_count');
-
-        // ランクごとの数を計算
+        // 5.ランク毎の数を計算する
         $totals = DB::table($subQuery)->count();
 
-        // rCount, fCount, mCount を取得する前に、まず $rData, $fData, $mData にデータを取得
-        $rData = DB::table($subQuery)
-            ->groupBY('r')
-            ->selectRaw('r, count(r) as r_count')
-            ->orderBy('r', 'desc')
-            ->get();
+        $rCount = DB::table($subQuery)
+        ->rightJoin('ranks', 'ranks.rank', '=', 'r')
+        ->groupBy('rank')
+        ->selectRaw('rank as r, count(r)')
+        ->orderBy('r', 'desc')
+        ->pluck('count(r)');
 
-        $fData = DB::table($subQuery)
-            ->groupBY('f')
-            ->selectRaw('f, count(f) as f_count')
-            ->orderBy('f', 'desc')
-            ->get();
-
-        $mData = DB::table($subQuery)
-            ->groupBy('m')
-            ->selectRaw('m, count(m) as m_count')
-            ->orderBy('m', 'desc')
-            ->get();
-
-        // データからカウントを抽出
-        $rCount = $rData->pluck('r_count');
-        $fCount = $fData->pluck('f_count');
-        $mCount = $mData->pluck('m_count');
+        Log::debug($rCount);
 
 
-        $eachCount = [];
-        $rank = 5;
+        $fCount = DB::table($subQuery)
+        ->rightJoin('ranks', 'ranks.rank', '=', 'f')
+        ->groupBy('rank')
+        ->selectRaw('rank as f, count(f)')
+        ->orderBy('f', 'desc')
+        ->pluck('count(f)');
 
+        $mCount = DB::table($subQuery)
+        ->rightJoin('ranks', 'ranks.rank', '=', 'm')
+        ->groupBy('rank')
+        ->selectRaw('rank as m, count(m)')
+        ->orderBy('m', 'desc')
+        ->pluck('count(m)');
+
+        $eachCount = []; // Vue側に渡すようの空の配列
+        $rank = 5; // 初期値5
+        
         for($i = 0; $i < 5; $i++)
         {
-            array_push($eachCount, [
-                'rank' => $rank,
-                'r' => isset($rCount[$i]) ? $rCount[$i] : 0,  // インデックスが存在しない場合は0を返す
-                'f' => isset($fCount[$i]) ? $fCount[$i] : 0,
-                'm' => isset($mCount[$i]) ? $mCount[$i] : 0,
-            ]);
-            $rank--;
+          array_push($eachCount, [
+             'rank' => $rank, 
+             'r' => $rCount[$i],  
+             'f' => $fCount[$i],  
+             'm' => $mCount[$i], 
+            ]);  
+            $rank--; // rankを1ずつ減らす 
         }
-
-        // dd($rCount, $eachCount ,$fCount, $mCount, $total);
-        // dd($rCount, $fCount, $mCount);
-
-
-        // RとFで２次元表示
+    
+        // dd($total, $eachCount, $rCount, $fCount, $mCount);
+        
+        // 6. RとFで2次元で表示してみる
         $data = DB::table($subQuery)
-        ->groupBy('r')
-        ->selectRaw('
-            CONCAT("r_", r) AS rRank,
-            COUNT(CASE WHEN f = 5 THEN 1 END) AS f_5,
-            COUNT(CASE WHEN f = 4 THEN 1 END) AS f_4,
-            COUNT(CASE WHEN f = 3 THEN 1 END) AS f_3,
-            COUNT(CASE WHEN f = 2 THEN 1 END) AS f_2,
-            COUNT(CASE WHEN f = 1 THEN 1 END) AS f_1
-        ')
+        ->rightJoin('ranks', 'ranks.rank', '=', 'r')
+        ->groupBy('rank')
+        ->selectRaw('concat("r_", rank) as rRank,
+        count(case when f = 5 then 1 end ) as f_5,
+        count(case when f = 4 then 1 end ) as f_4,
+        count(case when f = 3 then 1 end ) as f_3,
+        count(case when f = 2 then 1 end ) as f_2,
+        count(case when f = 1 then 1 end ) as f_1')
         ->orderBy('rRank', 'desc')
         ->get();
 
         // dd($data);
-
         return [$data, $totals, $eachCount];
-    }
+
+  }
 }
